@@ -1,0 +1,25 @@
+ &PARAM
+ NZ      =        250000,
+ PERIOD  = F,
+ LZ      =   2500,
+ LX = 6.0
+ NX      =       2048,
+ NTH     =        128,
+ DELTA   = 0,
+ MIRRX0 = 2.0
+ R0      =   1.0 ,
+ R1      =   1.0   ,
+ SIGMA   = 0.0,
+ GAMMA   =   1.0   ,
+ XE      =    0.22,
+ !XE      =    0.0,
+ C       =  0.0,
+ IN_TYPE =           2,
+ CENTRAL_MIRROR  = T,
+ CONT    = F,
+ IT_TODO =        50
+ OPS     = T,
+ LAMBDA  =  0.3
+ COLD    = T,
+ INTERP  = T
+ /

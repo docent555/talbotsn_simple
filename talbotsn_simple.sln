@@ -1,0 +1,31 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.33423.256
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{6989167D-11E4-40FE-8C1A-2192A86A7E90}") = "talbotsn_simple", "talbotsn_simple.vfproj", "{F722EC9C-165C-48A1-BFB9-8DC4F2B9933C}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|x64 = Debug|x64
+		Debug|x86 = Debug|x86
+		Release|x64 = Release|x64
+		Release|x86 = Release|x86
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{F722EC9C-165C-48A1-BFB9-8DC4F2B9933C}.Debug|x64.ActiveCfg = Debug|x64
+		{F722EC9C-165C-48A1-BFB9-8DC4F2B9933C}.Debug|x64.Build.0 = Debug|x64
+		{F722EC9C-165C-48A1-BFB9-8DC4F2B9933C}.Debug|x86.ActiveCfg = Debug|Win32
+		{F722EC9C-165C-48A1-BFB9-8DC4F2B9933C}.Debug|x86.Build.0 = Debug|Win32
+		{F722EC9C-165C-48A1-BFB9-8DC4F2B9933C}.Release|x64.ActiveCfg = Release|x64
+		{F722EC9C-165C-48A1-BFB9-8DC4F2B9933C}.Release|x64.Build.0 = Release|x64
+		{F722EC9C-165C-48A1-BFB9-8DC4F2B9933C}.Release|x86.ActiveCfg = Release|Win32
+		{F722EC9C-165C-48A1-BFB9-8DC4F2B9933C}.Release|x86.Build.0 = Release|Win32
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {0127B8AB-29CE-481B-967E-661C53DB2AC7}
+	EndGlobalSection
+EndGlobal
