@@ -107,7 +107,10 @@ program elektron2dsi
       sum_eff
    integer(c_int) iz, percent, rec_length, nr, first_it, ith
    character*6 str
+   logical resd
    integer i
+   
+   resd = systemqq('mkdir results')
 
    !schitaem parametry, vychislyaem a0(x), f(x), k2, z, x i t. d.
    call init()
@@ -115,8 +118,15 @@ program elektron2dsi
    !to, chto ne zavisit ot j
    dlt = im1*gamma*k2 + sigma   ! k2 - otricatel'noe
    ex = cdexp(-dlt*h)
+   
+   open(1, file = 'delta_n.dat') 
+   do i = 1,nx
+      write(1, '(i,2e17.8)') i, dreal(dlt(i)), dimag(dlt(i))
+   end do		
+   close(1)
+   			
 
-   rec_length = c_double_complex*2*nx/4
+   !rec_length = c_double_complex*2*nx/4
 
    call cpu_time(start_time)
 
@@ -161,8 +171,8 @@ program elektron2dsi
             !predictor
             !call step(ak0, ak1, ex, c3, jk0, jk1, dlt, h)
             call step()
-            
-            !!prediktor a (interpolyaciya)            
+
+            !!prediktor a (interpolyaciya)
             !ak1(2:nx:2) = ak0(2:nx:2)*ex(2:nx:2) + &
             !              c3*(jk0(2:nx:2) + jk1(2:nx:2)*(-1.0d0 + dlt(2:nx:2)*h) + &
             !                  ex(2:nx:2)*(jk1(2:nx:2) - jk0(2:nx:2)*(1.0d0 + dlt(2:nx:2)*h)))/dlt(2:nx:2)/dlt(2:nx:2)/h
@@ -187,7 +197,7 @@ program elektron2dsi
             !!korrektor
             !call step(ak0, ak1, ex, c3, jk0, jk1, dlt, h)
             call step()
-            
+
             !!korrektor a (interpolyaciya)
             !ak1(2:nx:2) = ak0(2:nx:2)*ex(2:nx:2) + &
             !              c3*(jk0(2:nx:2) + jk1(2:nx:2)*(-1.0d0 + dlt(2:nx:2)*h) + &
@@ -221,16 +231,17 @@ program elektron2dsi
       ak_zl(:) = ak1
       a_zl(:) = a1
 
-      !VARIANT 1      
+      !VARIANT 1
       call maggot_cmplx(ak1, tmp)
       tmp(:) = tmp(:)*cdexp(-dlt*lz)
       !dlya vyvoda v file
       ak_z0(:) = tmp(:)
       a_z0(:) = ifs(tmp)
+      !ak_z0(:) = fs(a_z0)
       !otrazhenie ot pervogo zerkala
       call maggot_cmplx(tmp, ak0)
 
-      !!VARIANT 2      
+      !!VARIANT 2
       !call maggot_cmplx(ak1, tmp)
       !ak_zl(:) = tmp
       !a_zl(:) = ifs(tmp)
@@ -249,10 +260,12 @@ program elektron2dsi
       if (pressed) then
          key = getcharqq()
          if (ichar(key) .eq. esc) then
-            write (*, '(/,a)') 'Quit?'
+            write (*, '(/,a)') '?'
             key = getcharqq()
-            if (ichar(key) .eq. 121 .or. ichar(key) .eq. 89) then
+            if (ichar(key) .eq. 113 .or. ichar(key) .eq. 81) then
                exit
+            elseif (ichar(key) .eq. 119 .or. ichar(key) .eq. 87) then
+               call write_result(it_made)
             end if
          end if
       end if
@@ -265,7 +278,7 @@ program elektron2dsi
    call cpu_time(finish_time)
    print *, 'computation time = ', finish_time - start_time, ' seconds'
 
-   call write_result()
+   call write_result(it_made - 1)
    call finish()
 
    print *, 'calculation finished.'
@@ -399,7 +412,7 @@ subroutine init() bind(c, name='init')
 
    open (1, file='fk_and_k2.dat')
    do i = 1, nx
-      write (1, '(2e17.8,i10)') fk1(i), fk2(i), int(k2(i))
+      write (1, '(4e17.8,i10)') fk1(i), fk2(i), k2(i)
    end do
    close (1)
 
@@ -422,27 +435,30 @@ subroutine finish() bind(c, name='finish')
    call deallocate_arrays()
 end subroutine finish
 
-subroutine write_result()
+subroutine write_result(iter)
    use ic
    use, intrinsic :: iso_c_binding
 
    implicit none
 
-   integer i, j
+   integer i, j, iter
+   character(6) str
 
    call cpu_time(start_time)
 
-   it_made = it_made - 1
+   write (str, 105) iter
+105 format(i0.6)
+   str = trim(str)
 
-   open (1, file='aend.dat', err=101)
+   open (1, file='results\aend_'//str//'.dat', err=101)
    do i = 1, nx
       write (1, '(1p7e17.8)', err=103) (i - 1)*hx, cdabs(a_z0(i)), cdabs(a_zl(i)), dreal(a_z0(i)), dimag(a_z0(i)), dreal(a_zl(i)), dimag(a_zl(i))
    end do
    close (1)
 
-   open (1, file='akend.dat', err=101)
-   do i = 1, nx
-      write (1, '(1p7e17.8)', err=103) (i - 1)*hx, cdabs(ak_z0(i)), cdabs(ak_zl(i)), dreal(ak_z0(i)), dimag(ak_z0(i)), dreal(ak_zl(i)), dimag(ak_zl(i))
+   open (1, file='results\akend_'//str//'.dat', err=101)
+   do i = 2, nx
+      write (1, '(1p7e17.8e3)', err=103) i - 1, cdabs(ak_z0(i)), cdabs(ak_zl(i)), dreal(ak_z0(i)), dimag(ak_z0(i)), dreal(ak_zl(i)), dimag(ak_zl(i))
    end do
    close (1)
 
@@ -646,7 +662,7 @@ function dn_fn() result(dn_res)
 
    dn_res = k*dn_res
 
-   open (1, file='delta_n.dat')
+   open (1, file='sav_delta_n.dat')
    do i = 1, nx
       write (1, '(i,2e17.8)') i, dn_res(i)
    end do
@@ -727,7 +743,7 @@ function g_fn(gx0) result(g_res)
       g_res = 0.0d0
       g_res(ig0:ig1) = 1.0d0
    end if
-   end function g_fn
+end function g_fn
 
 !subroutine step(ak0, ak1, ex, c3, jk0, jk1, dlt, h)
 !   use ic, only: nx, interp, atmp
@@ -742,8 +758,8 @@ subroutine step()
 
    if (interp == .true.) then
       ak1(2:nx:2) = ak0(2:nx:2)*ex(2:nx:2) + &
-                   c3*(jk0(2:nx:2) + jk1(2:nx:2)*(-1.0d0 + dlt(2:nx:2)*h) + &
-                       ex(2:nx:2)*(jk1(2:nx:2) - jk0(2:nx:2)*(1.0d0 + dlt(2:nx:2)*h)))/dlt(2:nx:2)/dlt(2:nx:2)/h
+                    c3*(jk0(2:nx:2) + jk1(2:nx:2)*(-1.0d0 + dlt(2:nx:2)*h) + &
+                        ex(2:nx:2)*(jk1(2:nx:2) - jk0(2:nx:2)*(1.0d0 + dlt(2:nx:2)*h)))/dlt(2:nx:2)/dlt(2:nx:2)/h
    else
       atmp = (ak0 + c3*h/2.0d0*jk0)*cdexp(-dlt*h) !chast' a
       ak1 = atmp + c3*h/2.0d0*jk1
