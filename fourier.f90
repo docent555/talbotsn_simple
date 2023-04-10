@@ -149,7 +149,8 @@ contains
       call fftw_execute_dft(plan_sc_f, in_sc_f, out_sc_f)
 
       !v = out_sc_f(1:n_sc)/(-ic*n_sc)
-      v = out_sc_f(1:n_sc)*ic/sqrt(2.0d0*n_sc)
+      !v = out_sc_f(1:n_sc)*ic/sqrt(2.0d0*n_sc)
+      v = out_sc_f(1:n_sc)*ic/n_sc !v = out_sc_f(1:n_sc)*ic/sqrt(2.0d0*n_sc)*sqrt(2.0d0/n_sc)
    end subroutine sint
 
    subroutine isint(v)
@@ -164,7 +165,8 @@ contains
       call fftw_execute_dft(plan_sc_b, in_sc_b, out_sc_b)
 
       !v = out_sc_b(1:n_sc)
-      v = out_sc_b(1:n_sc)*2.0d0/sqrt(2.0d0*n_sc)
+      !v = out_sc_b(1:n_sc)*2.0d0/sqrt(2.0d0*n_sc)
+      v = out_sc_b(1:n_sc) !v = out_sc_b(1:n_sc)*2.0d0/sqrt(2.0d0*n_sc)/sqrt(2.0d0/n_sc)
    end subroutine isint
 
    function fft_fun(v)

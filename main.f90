@@ -8,17 +8,17 @@ module ic
    implicit none
 
    namelist /param/ nz, period, lz, lx, nx, nth, delta, r0, r1, sigma, gamma, xe, c, &
-      in_type, central_mirror, cont, it_todo, ops, lambda, mirrx0, cold, interp! a0_peak!,  g_amp, g_x0, g_x1, intrvl, xcp, alfa, x_out, recount, thout, amp_only
+      in_type, central_mirror, cont, it_todo, ops, lambda, mirrx0, cold, interp, maggot! a0_peak!,  g_amp, g_x0, g_x1, intrvl, xcp, alfa, x_out, recount, thout, amp_only
 
    real(c_double) h, lz, lx, hx, hth, delta, imp_x0, imp_xsp, r0, r1, sigma, &
-      xe, gamma, c, c3, kappa, lambda, dva_na_k, norm, mirrx0, x_out!, a0_peak, xcp, alfa
-   integer(c_int) ::  nx, nth, nz, ix_out, intrvl, it_todo, it_doiter, in_type, it_made = 0, &
+      xe, gamma, c, c3, kappa, lambda, dva_na_k, norm, mirrx0, x_out, balance!, a0_peak, xcp, alfa
+   integer(c_int) ::  i, nx, nth, nz, ix_out, intrvl, it_todo, it_doiter, in_type, it_made = 0, &
                      it_flag = 0, ie, hours, minutes, seconds!, iimp_x0, iimp_xend
    logical(4) pressed
    character(1) key
    integer(c_int), parameter :: esc = 27
    !real(c_double), parameter :: pi = 2.0d0*dacos(0.0d0)
-   logical(c_bool) central_mirror, period, ops, cont, cold, interp
+   logical(c_bool) central_mirror, period, ops, cont, cold, interp, maggot
 
    complex(c_double_complex), allocatable :: a1(:), a0(:), ak1(:), ak0(:), atmp(:), jk1(:), jk0(:), k(:), ex(:), dlt(:), tmp(:), &
                                         aktmp(:), akzl(:), k2(:), akz0(:), a0z0(:), a0z0cut(:), ak_z0(:), ak_zl(:), a_z0(:), a_zl(:)
@@ -108,38 +108,53 @@ program elektron2dsi
    integer(c_int) iz, percent, rec_length, nr, first_it, ith
    character*6 str
    logical resd
-   integer i
-   
+
    resd = systemqq('mkdir results')
 
    !schitaem parametry, vychislyaem a0(x), f(x), k2, z, x i t. d.
    call init()
 
+   !nachalnye garmoniki
+   ak0(:) = fs(a0)
+   !ak0(:) = 0
+   
+
    !to, chto ne zavisit ot j
    dlt = im1*gamma*k2 + sigma   ! k2 - otricatel'noe
    ex = cdexp(-dlt*h)
-   
-   open(1, file = 'delta_n.dat') 
-   do i = 1,nx
-      write(1, '(i,2e17.8)') i, dreal(dlt(i)), dimag(dlt(i))
-   end do		
-   close(1)
-   			
+
+   !open(1, file = 'test.dat')
+   !do i = 1,nx
+   !   write(1, '(i,2e17.8)') i, ex(i)
+   !end do
+   !close(1)
+   !stop
+
+   !open (1, file='delta_n.dat')
+   !do i = 1, nx
+   !   write (1, '(i,2e17.8)') i, dreal(dlt(i)), dimag(dlt(i))
+   !end do
+   !close (1)
 
    !rec_length = c_double_complex*2*nx/4
 
    call cpu_time(start_time)
 
    !po novomu - dobavochek 23.03.23
-   ak0(:) = fs(a0)
-
+   !ak0(:) = fs(a0)
+   !a0(:) = ifs(ak0)
+   !atmp(:) = ifs(ak0)
+   !call sint_haf(a0, aktmp)
+   !aktmp = aktmp*sqrt(2.0d0/nx)
+   !call sint_haf(aktmp, tmp)
+   !tmp(:) = tmp/sqrt(2.0d0/nx)
    !do i = 1, nx
    !   fk1(:) = fk_fn(hx*(i - 1))
-   !   tmp(i) = mysum(fk1*ak0)*dsqrt(2.0d0/nx)
+   !   tmp(i) = mysum(fk1*a0)*2/nx
    !end do
    !open (1, file='test.dat')
    !do i = 1, nx
-   !   write (1, '(i,4f17.8)') i, real(a0(i)), real(tmp(i)), imag(a0(i)), imag(tmp(i))
+   !   write (1, '(i,4f17.8)') i, real(tmp(i)), real(ak0(i)), imag(tmp(i)), imag(ak0(i))
    !end do
    !close (1)
    !stop
@@ -162,6 +177,15 @@ program elektron2dsi
 
          !nachal'nyj tok (z=0)
          jk0 = fk1*jf(th0(:, 1)) + fk2*jf(th0(:, 2))
+
+         !print *, JF(TH0(:,2)), JF(TH0(:,2))
+
+         !open(1, file = 'test.dat')
+         !do i = 1,nx
+         !   write(1, '(i,4e17.8)') i,  fk1(i), fk2(i), jk0(i)
+         !end do
+         !close(1)
+         !stop
 
          do_z: do iz = 1, nz - 1
             rhs0 = rhs(ak0, th0)
@@ -224,37 +248,73 @@ program elektron2dsi
 
          !raschet summy kpd po x v tochke z=lz
          sum_eff = (eff(1) + eff(2))/2.0d0
-      end if
+         !sum_eff = eff(1) + eff(2)
+      end if            
 
       !vozvrashchaemsya v real'nost'
       a1 = ifs(ak1)
       ak_zl(:) = ak1
       a_zl(:) = a1
 
-      !VARIANT 1
-      call maggot_cmplx(ak1, tmp)
-      tmp(:) = tmp(:)*cdexp(-dlt*lz)
-      !dlya vyvoda v file
-      ak_z0(:) = tmp(:)
-      a_z0(:) = ifs(tmp)
-      !ak_z0(:) = fs(a_z0)
-      !otrazhenie ot pervogo zerkala
-      call maggot_cmplx(tmp, ak0)
+      if (maggot .eq. .true.) then
+         !VARIANT 1 (bez obrezaniya)
 
-      !!VARIANT 2
-      !call maggot_cmplx(ak1, tmp)
-      !ak_zl(:) = tmp
-      !a_zl(:) = ifs(tmp)
-      !tmp(:) = tmp*cdexp(-dlt*lz)
-      !!otrazhenie ot pervogo zerkala
-      !call maggot_cmplx(tmp, ak0)
-      !!dlya vyvoda v file
-      !ak_z0(:) = ak0(:)
-      !a_z0(:) = ifs(ak0)
+         !otrazhenie ot konechnogo zerkala
+         call maggot_cmplx(ak1, tmp)
+
+         !hod nazad
+         tmp(:) = tmp(:)*cdexp(-dlt*lz)
+
+         !dlya vyvoda v file
+         ak_z0(:) = tmp(:)
+         a_z0(:) = ifs(tmp)
+         !ak_z0(:) = fs(a_z0)
+
+         !otrazhenie ot pervogo zerkala
+         call maggot_cmplx(tmp, ak0)
+
+         !!VARIANT 2 (s obrezaniem)
+         !call maggot_cmplx(ak1, tmp)
+         !ak_zl(:) = tmp
+         !a_zl(:) = ifs(tmp)
+         !tmp(:) = tmp*cdexp(-dlt*lz)
+         !!otrazhenie ot pervogo zerkala
+         !call maggot_cmplx(tmp, ak0)
+         !!dlya vyvoda v file
+         !ak_z0(:) = ak0(:)
+         !a_z0(:) = ifs(ak0)
+      else
+         !otrazhenie ot konechnogo zerkala
+         tmp(:) = a1(:)*g(:)
+
+         !hod nazad
+         aktmp(:) = fs(tmp)*cdexp(-dlt*lz)
+
+         !otrazhenie ot pervogo zerkala
+         a0(:) = ifs(aktmp)*g(:)
+
+         !garmoniki dlya novogo zahoda
+         ak0(:) = fs(a0)
+
+         !dlya zspisi v file
+         ak_z0(:) = ak0(:)
+         a_z0(:) = ifs(ak0)
+      end if
+      
+      balance = (sum(abs(ak1)*abs(ak1) - abs(ak0)*abs(ak0)) - 4.0d0*c3*sum_eff)/sum(abs(ak1)*abs(ak1))
+
+      !if (it_made .eq. 900) then
+      !     open (1, file='test.dat')
+      !     do i = 1, nx
+      !        write (1, '(i,12e17.8)') i, jk0(i), jk1(i), ex(i), dlt(i), ak1(i), ak0(i)
+      !     end do
+      !     close (1)
+      !     stop
+      !  end if
 
       write (*, '(a,\)') char(13)
-      write (*, '(a,i6,a,f7.3,a,e17.8,a,e17.8,a)') 'iteration #', it_made, ':     a(', x_out, ') = ', &
-         cdabs(a1(ix_out)), '   eff = ', sum_eff
+      write (*, '(a,i6,a,f7.3,a,e17.8,a,e17.8,a,e17.8)') 'iteration #', it_made, ':     a(', x_out, ') = ', &
+         cdabs(a1(ix_out)), '   eff = ', sum_eff, '   balance = ', balance
 
       pressed = peekcharqq()
       if (pressed) then
@@ -292,9 +352,12 @@ contains
    function jf(th)
       implicit none
       real(c_double), intent(in) :: th(:)
-      complex(c_double_complex) jf
+      complex(c_double_complex) jf, tmp
 
-      jf = 2.0d0/dble(nth)*sum(cdexp(-im1*th))
+      tmp = 2.0d0/dble(nth)*sum(cdexp(-im1*th))
+      jf = tmp
+      !print *, 'J = ', tmp
+      !pause
    end function jf
 
    function rhs(ak, th)
@@ -303,8 +366,8 @@ contains
       real(c_double), intent(in) :: th(:, :)
       real(c_double), dimension(size(th, 1), size(th, 2)) :: rhs
 
-      rhs(:, 1) = dreal(mysum(fk1*ak)*cdexp(im1*th(:, 1)))*dsqrt(2.0d0/nx)
-      rhs(:, 2) = dreal(mysum(fk2*ak)*cdexp(im1*th(:, 2)))*dsqrt(2.0d0/nx)
+      rhs(:, 1) = dreal(mysum(fk1*ak)*cdexp(im1*th(:, 1)))!*dsqrt(2.0d0/nx)
+      rhs(:, 2) = dreal(mysum(fk2*ak)*cdexp(im1*th(:, 2)))!*dsqrt(2.0d0/nx)      
 
    end function rhs
 
@@ -315,7 +378,7 @@ contains
       integer(c_int) i, n
 
       n = size(a)
-      mysum = dcmplx(0)
+      mysum = dcmplx(0.0d0)
 
       do i = n, 1, -1
          mysum = mysum + a(i)
@@ -344,8 +407,6 @@ subroutine init() bind(c, name='init')
 
    implicit none
 
-   integer i
-
    interface
       subroutine read_param() bind(c, name='read_param')
       end subroutine read_param
@@ -372,6 +433,11 @@ subroutine init() bind(c, name='init')
          use ic
          complex(c_double_complex), dimension(nx) :: dn_res
       end function dn_fn
+      function g_fn(gx0) result(g_res)
+         use ic
+         real(c_double), dimension(nx) :: g_res
+         real(c_double) gx0
+      end function g_fn
    end interface
 
    call read_param()
@@ -403,6 +469,9 @@ subroutine init() bind(c, name='init')
    else
       k2 = dn_fn()
    end if
+
+   !mirror
+   g(:) = g_fn(mirrx0)
 
    open (1, file='a0.dat')
    do i = 1, nx
@@ -441,7 +510,7 @@ subroutine write_result(iter)
 
    implicit none
 
-   integer i, j, iter
+   integer j, iter
    character(6) str
 
    call cpu_time(start_time)
@@ -475,8 +544,6 @@ subroutine calc_zxit()
    use ic
 
    implicit none
-
-   integer i
 
    do i = 1, nz
       z(i) = (i - 1)*h
@@ -589,6 +656,9 @@ function fk_fn(xe) result(fk_res)
       print *, 'fk = 0'
    end if
 
+   !print *, pi, n(2), xe, lx
+   !pause
+
    !open(1, file = 'test.dat')
    !do i=1,nx
    !    write(1,'(i,e17.8,i)') i-1, fk_res(i), n(i)
@@ -618,7 +688,6 @@ function k2_fn() result(k2_res)
    implicit none
 
    complex(c_double_complex), dimension(nx) :: k2_res
-   integer i
    real(c_double) w
 
    !k**2
@@ -681,7 +750,7 @@ subroutine allocate_arrays()
              aktmp(nx), akzl(nx), akz0(nx), a0z0(nx), a0z0cut(nx), &
              it(it_todo), &
              ex(nx), k(2*nx), dlt(nx), tmp(nx), &
-             ak_z0(nx), ak_zl(nx), a_z0(nx), a_zl(nx), & !theta(nth, 2, nz), a_amp_z0(nx), a_amp_zl(nx), sum_abs2_a_plus_by_z(nx), sum_abs2_a_plus_by_z_k(nx)&
+             ak_z0(nx), ak_zl(nx), a_z0(nx), a_zl(nx), g(nx), & !theta(nth, 2, nz), a_amp_z0(nx), a_amp_zl(nx), sum_abs2_a_plus_by_z(nx), sum_abs2_a_plus_by_z_k(nx)&
              stat=err_alloc)
 
    if (err_alloc /= 0) then
@@ -701,7 +770,7 @@ subroutine deallocate_arrays()
                th0, th1, dthdz, fk1, fk2, rhs0, z, x, k2, &
                aktmp, akzl, akz0, a0z0cut, &
                it, &
-               ex, k, dlt, tmp, &
+               ex, k, dlt, tmp, g, &
                !theta, a_amp_z0, a_amp_zl, sum_abs2_a_plus_by_z, sum_abs2_a_plus_by_z_k &
                stat=err_dealloc)
 
@@ -731,7 +800,7 @@ function g_fn(gx0) result(g_res)
 
    real(c_double), dimension(nx) :: g_res
    real(c_double) gx0
-   integer(c_int) i, ig0, ig1
+   integer(c_int) ig0, ig1
 
    ig0 = gx0/hx + 1 ! dobavlyaem 1 dlia pervoy tochki
    ig1 = (nx + 1) - ig0 + 1 ! 1 k nx potomu chto furie (poslednyaya tochka ne cschitaetsya)
@@ -764,5 +833,14 @@ subroutine step()
       atmp = (ak0 + c3*h/2.0d0*jk0)*cdexp(-dlt*h) !chast' a
       ak1 = atmp + c3*h/2.0d0*jk1
    end if
+
+   !print *, 'c3  = ', c3, 'h = ', h
+
+   !open(1, file = 'test.dat')
+   !do i = 1,nx
+   !   write(1, '(i,12e17.8)') i, jk0(i), jk1(i), ex(i), ak0(i), dlt(i), ak1(i)
+   !end do
+   !close(1)
+   !stop
 
 end subroutine step

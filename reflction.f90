@@ -13,7 +13,8 @@ module reflection
    integer(4) n, n2, n3, n4
    real(8) L, xl, xr
 
-   real(8), parameter :: pi = 2.0d0*dasin(1.0d0)
+   !real(8), parameter :: pi = 2.0d0*dasin(1.0d0)
+   real(c_double), parameter :: pi = 2.0d0*dacos(0.0d0)
 
    real(8), allocatable :: mirr_haf(:), trig_haf(:), work_haf(:), work_faf(:), &
                            mirr_faf(:), r(:, :), mirr2_haf(:), trig2_haf(:), work2_haf(:), mirr2(:), mirr(:), &
@@ -174,7 +175,7 @@ contains
    !
    !end subroutine ifft_odd
 
-   subroutine maggot(a, b)
+   subroutine maggot_real(a, b)
 
       implicit none
 
@@ -192,7 +193,7 @@ contains
          end do
       end do
 
-   end subroutine maggot
+   end subroutine maggot_real
 
    subroutine maggot_cmplx(a, b)
 
